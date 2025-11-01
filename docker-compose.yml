@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - TRAIN_DATA=/app/data/sample_logs.csv
+      - ALERTS_DATA=/app/data/sample_logs.csv
+    volumes:
+      - ./data:/app/data
+      - ./backend/models_store:/app/backend/models_store
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "8501:8501"
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./infra/grafana-provisioning/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
